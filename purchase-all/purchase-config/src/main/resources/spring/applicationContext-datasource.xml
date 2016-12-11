@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:task="http://www.springframework.org/schema/task"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+	http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd">
+
+	<!-- DB数据源配置 -->
+	<bean id="dataSource" class="com.jolbox.bonecp.BoneCPDataSource"
+		destroy-method="close">
+		<!-- 数据库驱动 -->
+		<property name="driverClass" value="${dataSource.driverClass}" />
+		<!-- 相应驱动的jdbcUrl -->
+		<property name="jdbcUrl" value="${dataSource.jdbcUrl}" />
+		<!-- 数据库的用户名 -->
+		<property name="username" value="${dataSource.username}" />
+		<!-- 数据库的密码 -->
+		<property name="password" value="${dataSource.password}" />
+		<!-- 连接可用测试语句 -->
+		<property name="connectionTestStatement" value="SELECT 1" />
+		<!-- 检查数据库连接池中空闲连接的间隔时间，单位是分，默认值：240，如果要取消则设置为0 -->
+		<property name="idleConnectionTestPeriodInMinutes" value="0" />
+		<!-- 连接池中未使用的链接最大存活时间，单位是分，默认值：60，如果要永远存活设置为0 -->
+		<property name="idleMaxAgeInMinutes" value="0" />
+		<!-- 每个分区最大的连接数 -->
+		<property name="maxConnectionsPerPartition" value="${dataSource.maxConnectionsPerPartition}" />
+		<!-- 每个分区最小的连接数 -->
+		<property name="minConnectionsPerPartition" value="1" />
+		<!-- 分区数 ，默认值2，最小1，推荐3-4，视应用而定 -->
+		<property name="partitionCount" value="${dataSource.partitionCount}" />
+		<!-- 每次去拿数据库连接的时候一次性要拿几个,默认值：2 -->
+		<property name="acquireIncrement" value="2" />
+		<!-- 缓存prepared statements的大小，默认值：0 -->
+		<property name="statementsCacheSize" value="0" />
+	</bean>
+	
+	<!-- 数据库初始化与升级功能相关 -->
+	<bean id="db_migrate" class="com.push.common.db.migration.DBScriptMigrate" init-method="migrate" depends-on="managementService">
+  		<property name="baselineOnMigrate" value="true" />
+		<property name="autoExecOnStart" value="${db.script.auto.exec.onstart}" />
+  		<property name="locations" value="${db.script.path}" />
+  		<property name="dataSource" ref="dataSource" />
+	</bean>
+	
+	
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean" depends-on="db_migrate">  
+		<property name="dataSource" ref="dataSource" />  
+		<property name="configLocation" value="file:${push_basedir}/mybatis-config.xml"></property> 
+		<property name="mapperLocations" value="classpath*:mappers/*-mapper.xml"/> 
+		<property name="typeAliasesPackage" value="com.push.*.model" />    
+	</bean>
+	
+	<bean id="transactionManager"  
+        class="org.springframework.jdbc.datasource.DataSourceTransactionManager">  
+        <property name="dataSource" ref="dataSource" />  
+       <!--  <property name="globalRollbackOnParticipationFailure" value="false" />-->
+    </bean>
+    
+    <!-- 这里的mapperInterface需要接口类型 -->  
+    <!--
+    <bean id="userMapper" class="org.mybatis.spring.mapper.MapperFactoryBean">  
+        <property name="mapperInterface" value="com.push.common.db.BaseDAO" />  
+        <property name="sqlSessionFactory" ref="sqlSessionFactory" />  
+    </bean>   
+      -->
+    
+
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+	  <property name="basePackage" value="com.push" />
+	  <property name="markerInterface" value="com.push.common.db.BaseDAO"/>
+	</bean>
+
+      
+
+	<!-- 启用注解方式事务配置 -->
+	<tx:annotation-driven transaction-manager="transactionManager" />
+
+</beans>

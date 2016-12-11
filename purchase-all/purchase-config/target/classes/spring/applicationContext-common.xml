@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:task="http://www.springframework.org/schema/task" xmlns:dubbo="http://code.alibabatech.com/schema/dubbo"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+	http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-3.0.xsd
+	http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+	http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+	http://www.springframework.org/schema/task http://www.springframework.org/schema/task/spring-task-3.0.xsd
+    http://code.alibabatech.com/schema/dubbo
+    http://code.alibabatech.com/schema/dubbo/dubbo.xsd
+    http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+
+	<bean id="message"
+		class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+		<property name="location"
+			value="file:${push_basedir}/config/message-template.properties" />
+		<property name="fileEncoding" value="UTF-8" />
+	</bean>
+
+	<bean id="properties"
+		class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+		<property name="location">
+			<value>file:${push_basedir}/config/application-${SYSTEM_NAME}.properties
+			</value>
+		</property>
+		<property name="fileEncoding" value="utf-8" />
+	</bean>
+	<context:property-placeholder
+		properties-ref="properties" />
+
+	<bean class="com.push.core.mq.common.EventListenerBeanProcessor" />
+
+	<bean class="com.push.core.mq.common.PushMQConfig">
+		<constructor-arg>
+			<map>
+				<entry key="zk.connect" value="${zookeeperAddr}" />
+				<entry key="zk.connectiontimeout.ms" value="${zk.connect.timeout.ms}" />
+			</map>
+		</constructor-arg>
+	</bean>
+
+	<bean class="com.push.core.config.SystemOtherConfig">
+		<constructor-arg>
+			<map>
+				<entry key="textSearchCfg" value="${text.search.cfg}" />
+				<entry key="initDictionaryToDB" value="${dictionary.db.init.onstart}" />
+				<entry key="systemMail" value="${system.mail}" />
+				<entry key="cleanScheduleJobOnStart" value="${clean.schedule.job.onstart}" />
+				<entry key="orgInviteMailNickName" value="${mail.org.nick.name}" />
+			</map>
+		</constructor-arg>
+	</bean>
+
+	<!-- mail相关 -->
+	<bean
+		class="org.springframework.web.servlet.view.freemarker.FreeMarkerConfigurer">
+		<property name="templateLoaderPath" value="file:${push_basedir}/mail-templates" /><!--指定模板文件目录 -->
+		<property name="freemarkerSettings"><!-- 设置FreeMarker环境属性 -->
+			<props>
+				<prop key="template_update_delay">3600</prop><!--刷新模板的周期，单位为秒 -->
+				<prop key="default_encoding">UTF-8</prop><!--模板的编码格式 -->
+				<prop key="output_encoding">UTF-8</prop><!--输出内容的编码格式 -->
+				<prop key="locale">zh_CN</prop><!-- 本地化设置 -->
+				<prop key="date_format">yyyy-MM-dd</prop><!--日期格式设置 -->
+				<prop key="time_format">HH:mm:ss</prop><!--时间格式设置 -->
+				<prop key="datetime_format">yyyy-MM-dd HH:mm:ss</prop><!--日期时间完整格式设置 -->
+			</props>
+		</property>
+	</bean>
+
+	<bean class="org.springframework.mail.javamail.JavaMailSenderImpl">
+		<property name="host">
+			<value>smtp.mxhichina.com</value>
+		</property>
+		<property name="javaMailProperties">
+			<props>
+				<prop key="mail.smtp.auth">true</prop>
+				<prop key="mail.smtp.timeout">25000</prop>
+			</props>
+		</property>
+		<property name="username" value="push-platform@pushitech.com" />
+		<property name="password" value="aaa123+-*/godie" />
+	</bean>
+
+
+	<bean class="com.push.common.base.ExternalitiesVerify"
+		init-method="verify">
+		<property name="skipVerify" value="${skip.externalities.verify}" />
+		<property name="zookeeperAddr" value="${zookeeperAddr}" />
+		<property name="databaseUrl" value="${dataSource.jdbcUrl}" />
+	</bean>
+
+	<!-- 短信平台相关配置 -->
+	<bean class="com.push.core.sms.SMSConfig">
+		<property name="smsUrl" value="${sms.url}" />
+		<property name="paramString" value="${sms.params}" />
+		<property name="paramNewUser" value="${sms.params.newUser}" />
+		<property name="weChatBinding" value="${sms.params.weChatBinding}"></property>
+		<property name="newUserAccountReset" value="${sms.params.newUserAccountReset}" />
+		<property name="newAccountReBinding" value="${sms.params.newAccountReBinding}" />
+		<property name="newResetPassword" value="${sms.params.newResetPassword}" />
+		<property name="newUniversity" value="${sms.params.newUniversity}" />
+		<property name="newUniversityUser" value="${sms.params.newUniversityUser}" />
+		<property name="newGovernment" value="${sms.params.newGovernment}" />
+		<property name="newGovernmentUser" value="${sms.params.newGovernmentUser}" />
+		<property name="paramNewOrganization" value="${sms.params.newOrganization}" />
+		<property name="newOrganizationUser" value="${sms.params.newOrganizationUser}" />
+		<property name="feedbackConfirm" value="${sms.params.feedbackConfirm}" />
+		<property name="feedbackRefuse" value="${sms.params.feedbackRefuse}" />
+		<property name="personal" value="${sms.params.personal}" />
+		<property name="enterprise" value="${sms.params.enterprise}" />
+		<property name="rejectApproval" value="${sms.params.rejectApproval}" />
+		<property name="portalAccount" value="${sms.params.portalAccount}" />
+		<property name="portalAccountReBinding" value="${sms.params.portalAccountReBinding}" />
+		<property name="portalResetPassword" value="${sms.params.portalResetPassword}" />
+		<property name="successCode" value="${sms.success.code}" />
+		<property name="failuerCode" value="${sms.fail.code}" />
+		<property name="sig" value="${sms.sign}" />
+		<property name="validityMinute" value="${sms.validity.Minute}" />
+	</bean>
+
+	<!-- DB配置注解生效和包扫描 -->
+	<context:annotation-config />
+	<context:component-scan base-package="com.push">
+		<context:include-filter type="annotation"
+			expression="com.push.core.dictionary.annotation.DCode" />
+		<context:include-filter type="annotation"
+			expression="com.push.core.exception.annotation.BizException" />
+		<context:include-filter type="annotation"
+			expression="com.push.core.scheduler.annotation.BizScheduler" />
+	</context:component-scan>
+
+	<aop:aspectj-autoproxy proxy-target-class="true" />
+	<tx:annotation-driven />
+
+
+
+</beans>
